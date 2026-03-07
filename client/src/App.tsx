@@ -1,36 +1,55 @@
 import { Switch, Route, useLocation } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuthContext } from "@/contexts/AuthContext";
+import { WizardProvider, useWizardContext } from "@/contexts/WizardContext";
 import NotFound from "@/pages/not-found";
 
 import AuthPage from "./pages/Auth";
+import SetupWizard from "./pages/SetupWizard";
 import Dashboard from "./pages/Dashboard";
 import Chores from "./pages/Chores";
 import Ledger from "./pages/Ledger";
 import Calendar from "./pages/Calendar";
 import Comms from "./pages/Comms";
 import { Navigation } from "./components/Navigation";
-import { useAuth } from "./hooks/use-auth";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
-  const { data: user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const { user, isLoading } = useAuthContext();
+  const [location, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      setLocation("/auth");
+    }
+  }, [user, isLoading, setLocation]);
 
   if (isLoading) return <div className="min-h-screen bg-[#1a1a1a]" />;
-  if (!user) {
-    setLocation("/auth");
-    return null;
-  }
+  if (!user) return null;
 
   return <Component />;
 }
 
-function Router() {
+function RouterContent() {
+  const { user, isLoading } = useAuthContext();
+  const { isNewUser } = useWizardContext();
+  const [location] = useLocation();
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#1a1a1a]" />;
+  }
+
+  // If user is authenticated and new, show setup wizard
+  if (user && isNewUser) {
+    return <SetupWizard />;
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Navigation />
+      {user && <Navigation />}
       <div className="flex-1 overflow-x-hidden">
         <Switch>
           <Route path="/auth" component={AuthPage} />
@@ -49,10 +68,14 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <WizardProvider>
+          <TooltipProvider>
+            <Toaster />
+            <RouterContent />
+          </TooltipProvider>
+        </WizardProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
