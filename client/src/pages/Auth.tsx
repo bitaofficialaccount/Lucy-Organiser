@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useWizardContext } from "@/contexts/WizardContext";
-import { HardwareButton, OLEDDisplay, TapeLabel, PageTransition } from "@/components/ui/hardware";
+import { Button, Card, Input, PageTransition, Header } from "@/components/ui/modern";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { Users } from "lucide-react";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
@@ -25,11 +26,11 @@ export default function AuthPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <OLEDDisplay className="max-w-md w-full text-center py-12">
-          SYSTEM_BOOTING...<br />
-          <span className="animate-pulse">_</span>
-        </OLEDDisplay>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin text-4xl mb-4">🔄</div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -43,7 +44,6 @@ export default function AuthPage() {
 
     try {
       if (isLoginMode) {
-        // Login
         const input = api.auth.login.input.parse({ username, password });
         const res = await fetch(api.auth.login.path, {
           method: api.auth.login.method,
@@ -62,7 +62,6 @@ export default function AuthPage() {
         login(userData);
         setLocation("/");
       } else {
-        // Register as Parent
         const input = api.auth.registerParent.input.parse({ username, password });
         const res = await fetch(api.auth.registerParent.path, {
           method: api.auth.registerParent.method,
@@ -95,96 +94,89 @@ export default function AuthPage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="mb-8 text-center relative">
-            <TapeLabel className="text-xl rotate-[-3deg] absolute -top-4 -left-4 z-10 shadow-lg">
-              System Power
-            </TapeLabel>
-            <OLEDDisplay className="py-8">
-              <div className="text-2xl font-bold text-center tracking-widest mb-2">LUCY_OS v1.0</div>
-              <div className="text-center text-xs opacity-70">AWAITING_INPUT</div>
-            </OLEDDisplay>
+          <div className="text-center mb-8">
+            <div className="text-5xl mb-3">👨‍👩‍👧‍👦</div>
+            <h1 className="text-4xl font-bold text-gray-900">Lucy Organiser</h1>
+            <p className="text-gray-600 mt-2">Family Connection</p>
           </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="bg-[#222] border-4 border-[#111] p-6 rounded-none shadow-[16px_16px_0px_rgba(0,0,0,1)]"
-          >
-            <div className="flex mb-8 gap-4 border-b-2 border-[#111] pb-4">
+          <Card className="shadow-lg border-0">
+            <div className="flex gap-4 mb-6">
               <button
-                type="button"
-                className={`font-display uppercase tracking-widest text-sm flex-1 py-2 ${
-                  isLoginMode ? "text-primary" : "text-neutral-500 hover:text-white"
-                }`}
                 onClick={() => {
                   setIsLoginMode(true);
                   setError("");
                 }}
+                className={`flex-1 py-2 font-semibold rounded-full transition-colors ${
+                  isLoginMode
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
               >
-                {">"}Login
+                Sign In
               </button>
               <button
-                type="button"
-                className={`font-display uppercase tracking-widest text-sm flex-1 py-2 ${
-                  !isLoginMode ? "text-primary" : "text-neutral-500 hover:text-white"
-                }`}
                 onClick={() => {
                   setIsLoginMode(false);
                   setError("");
                 }}
+                className={`flex-1 py-2 font-semibold rounded-full transition-colors ${
+                  !isLoginMode
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
               >
-                {">"}System Setup
+                Create Account
               </button>
             </div>
 
-            <div className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-display uppercase tracking-wider text-neutral-400 mb-2">
-                  Username_
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Username
                 </label>
-                <input
-                  className="w-full bg-[#111] border-2 border-[#000] p-4 text-white font-display focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]"
+                <Input
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin"
-                  required
+                  placeholder="Enter username"
                   disabled={isSubmitting}
+                  required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-display uppercase tracking-wider text-neutral-400 mb-2">
-                  Password_
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Password
                 </label>
-                <input
+                <Input
                   type="password"
-                  className="w-full bg-[#111] border-2 border-[#000] p-4 text-white font-display focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
+                  placeholder="Enter password"
                   disabled={isSubmitting}
+                  required
                 />
               </div>
 
               {error && (
-                <div className="bg-destructive/20 border border-destructive text-destructive p-3 font-display text-sm">
-                  ERR: {error}
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                  {error}
                 </div>
               )}
 
-              <HardwareButton
+              <Button
                 type="submit"
-                className="w-full py-4 text-lg font-bold"
-                color="#FF4F00"
-                textColor="#000"
+                variant="primary"
+                size="lg"
+                className="w-full"
                 disabled={isSubmitting || !username.trim() || !password.trim()}
               >
-                {isSubmitting ? "PROCESSING..." : isLoginMode ? "ENTER_SYSTEM" : "INITIALIZE_PARENT"}
-              </HardwareButton>
-            </div>
-          </form>
+                {isSubmitting ? "Loading..." : isLoginMode ? "Sign In" : "Create Account"}
+              </Button>
+            </form>
+          </Card>
         </div>
       </div>
     </PageTransition>

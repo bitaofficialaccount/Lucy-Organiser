@@ -1,233 +1,236 @@
 import { useState } from "react";
 import { useWizardContext } from "@/contexts/WizardContext";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { HardwareButton, OLEDDisplay, TapeLabel, Knob, PageTransition } from "@/components/ui/hardware";
+import { Button, Card, Input, PageTransition, Header } from "@/components/ui/modern";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import { generateRandomName, generateRandomUsername } from "@/lib/utils";
+import { Dice6, Plus, Trash2 } from "lucide-react";
+
+const COLORS = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA502", "#9D84B7"];
 
 export default function SetupWizard() {
-  const { currentStep, setCurrentStep, parentInfo, setParentInfo, kids, addKid, removeKid, resetWizard } = useWizardContext();
+  const { setIsNewUser } = useWizardContext();
   const { login } = useAuthContext();
-  
+  const [step, setStep] = useState<"parent" | "kids">("parent");
+
+  const [kidName, setKidName] = useState("");
   const [kidUsername, setKidUsername] = useState("");
   const [kidPassword, setKidPassword] = useState("");
-  const [selectedColor, setSelectedColor] = useState("#FF4F00");
+  const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+  const [kids, setKids] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const colors = ["#FF4F00", "#00D34D", "#007AFF", "#FFD600", "#D800FF"];
-
-  const handleParentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const addKid = () => {
+    if (!kidName.trim() || !kidUsername.trim() || !kidPassword.trim()) {
+      setError("All fields are required");
+      return;
+    }
+    setKids([...kids, { name: kidName, username: kidUsername, password: kidPassword, color: selectedColor }]);
+    setKidName("");
+    setKidUsername("");
+    setKidPassword("");
     setError("");
-    setIsLoading(true);
+  };
 
-    try {
-      const input = api.auth.registerParent.input.parse({
-        username: (e.target as any).username.value,
-        password: (e.target as any).password.value,
-      });
+  const removeKid = (index: number) => {
+    setKids(kids.filter((_, i) => i !== index));
+  };
 
-      const res = await fetch(api.auth.registerParent.path, {
-        method: api.auth.registerParent.method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(input),
-        credentials: "include",
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.message || "Registration failed");
+  const handleNext = async () => {
+    if (step === "parent") {
+      setStep("kids");
+    } else {
+      // Create all kids
+      if (kids.length === 0) {
+        setError("You must add at least 1 kid");
         return;
       }
 
-      const user = await res.json();
-      login(user);
-      setParentInfo({
-        username: input.username,
-        password: input.password,
-      });
-      setCurrentStep("add_kids");
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setError(err.errors[0].message);
-      } else {
-        setError("An error occurred");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      setIsLoading(true);
+      try {
+        for (const kid of kids) {
+          const input = api.auth.registerKid.input.parse({
+            username: kid.username,
+            password: kid.password,
+            color: kid.color,
+          });
 
-  const handleAddKid = () => {
-    if (!kidUsername.trim() || !kidPassword.trim()) {
-      setError("Username and password are required");
-      return;
-    }
+          const res = await fetch(api.auth.registerKid.path, {
+            method: api.auth.registerKid.method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(input),
+            credentials: "include",
+          });
 
-    addKid({
-      username: kidUsername,
-      password: kidPassword,
-      color: selectedColor,
-    });
-
-    setKidUsername("");
-    setKidPassword("");
-  };
-
-  const handleFinish = async () => {
-    setError("");
-    setIsLoading(true);
-
-    try {
-      for (const kid of kids) {
-        const input = api.auth.registerKid.input.parse({
-          username: kid.username,
-          password: kid.password,
-          color: kid.color,
-        });
-
-        const res = await fetch(api.auth.registerKid.path, {
-          method: api.auth.registerKid.method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(input),
-          credentials: "include",
-        });
-
-        if (!res.ok) {
-          const data = await res.json();
-          setError(`Failed to create kid account: ${data.message}`);
-          return;
+          if (!res.ok) {
+            const data = await res.json();
+            setError(`Failed to create kid account: ${data.message}`);
+            return;
+          }
         }
-      }
 
-      resetWizard();
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        setError(err.errors[0].message);
-      } else {
+        setIsNewUser(false);
+      } catch (err) {
         setError("An error occurred");
+      } finally {
+        setIsLoading(false);
       }
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#1a1a1a] p-4 md:p-8 flex flex-col items-center justify-center">
-        {currentStep === "parent_info" && (
-          <form onSubmit={handleParentSubmit} className="w-full max-w-md">
-            <TapeLabel className="mb-6 block text-center text-xl">MASTER_INIT</TapeLabel>
-            <div className="space-y-4 bg-[#222] p-6 border-4 border-black">
-              <OLEDDisplay className="mb-4">PARENT_CONFIG</OLEDDisplay>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex items-center justify-center">
+        <div className="w-full max-w-md">
+          {step === "parent" && (
+            <Card className="shadow-lg">
+              <Header title="Let's Set Up Your Family 👨‍👩‍👧‍👦" />
+              <p className="text-gray-600 mb-6">You are now a Parent account. Next, add your kids!</p>
+              <Button variant="primary" size="lg" className="w-full" onClick={handleNext}>
+                Add Kids →
+              </Button>
+            </Card>
+          )}
 
-              <input
-                type="text"
-                name="username"
-                placeholder="Callsign (Username)"
-                className="w-full bg-[#111] border-2 border-[#000] p-3 text-white font-display focus:outline-none focus:border-primary"
-                required
-              />
-
-              <input
-                type="password"
-                name="password"
-                placeholder="Passcode"
-                className="w-full bg-[#111] border-2 border-[#000] p-3 text-white font-display focus:outline-none focus:border-primary"
-                required
-              />
-
-              {error && <div className="text-red-500 text-sm">{error}</div>}
-
-              <HardwareButton type="submit" className="w-full py-3 mt-4" color="#FF4F00" textColor="#000" disabled={isLoading}>
-                {isLoading ? "PROCESSING..." : "PROCEED"}
-              </HardwareButton>
-            </div>
-          </form>
-        )}
-
-        {currentStep === "add_kids" && (
-          <div className="w-full max-w-2xl">
-            <TapeLabel className="mb-6 block text-center text-xl">SUB_UNIT_CONFIG</TapeLabel>
-            
-            <div className="bg-[#222] p-6 border-4 border-black mb-6">
-              <OLEDDisplay className="mb-6">ADD_SUBORDINATE_UNITS</OLEDDisplay>
+          {step === "kids" && (
+            <Card className="shadow-lg">
+              <Header title="Add Your Kids" />
 
               <div className="space-y-4 mb-6">
-                <input
-                  type="text"
-                  placeholder="Unit Callsign"
-                  value={kidUsername}
-                  onChange={(e) => setKidUsername(e.target.value)}
-                  className="w-full bg-[#111] border-2 border-[#000] p-3 text-white font-display focus:outline-none focus:border-primary"
-                />
-
-                <input
-                  type="password"
-                  placeholder="Unit Passcode"
-                  value={kidPassword}
-                  onChange={(e) => setKidPassword(e.target.value)}
-                  className="w-full bg-[#111] border-2 border-[#000] p-3 text-white font-display focus:outline-none focus:border-primary"
-                />
-
-                <div className="flex gap-2 justify-center">
-                  {colors.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className={`w-10 h-10 border-4 transition-all ${selectedColor === c ? "border-white scale-110 shadow-lg" : "border-black"}`}
-                      style={{ backgroundColor: c }}
-                      onClick={() => setSelectedColor(c)}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Kid's Name</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={kidName}
+                      onChange={(e) => setKidName(e.target.value)}
+                      placeholder="e.g., Emma"
+                      disabled={isLoading}
                     />
-                  ))}
+                    <Button
+                      variant="secondary"
+                      onClick={() => setKidName(generateRandomName())}
+                      disabled={isLoading}
+                      className="px-3"
+                    >
+                      <Dice6 size={18} />
+                    </Button>
+                  </div>
                 </div>
 
-                <HardwareButton type="button" onClick={handleAddKid} className="w-full py-2" color="#00D34D" textColor="#000">
-                  + ADD_UNIT
-                </HardwareButton>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Username</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={kidUsername}
+                      onChange={(e) => setKidUsername(e.target.value)}
+                      placeholder="e.g., coolpanda42"
+                      disabled={isLoading}
+                    />
+                    <Button
+                      variant="secondary"
+                      onClick={() => setKidUsername(generateRandomUsername())}
+                      disabled={isLoading}
+                      className="px-3"
+                    >
+                      <Dice6 size={18} />
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Password</label>
+                  <Input
+                    type="password"
+                    value={kidPassword}
+                    onChange={(e) => setKidPassword(e.target.value)}
+                    placeholder="Create a password"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Color</label>
+                  <div className="flex gap-2">
+                    {COLORS.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => setSelectedColor(c)}
+                        className={`w-10 h-10 rounded-full border-4 transition-all ${
+                          selectedColor === c ? "border-gray-900 scale-110" : "border-gray-300"
+                        }`}
+                        style={{ backgroundColor: c }}
+                        disabled={isLoading}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={addKid}
+                  disabled={isLoading || !kidName.trim() || !kidUsername.trim() || !kidPassword.trim()}
+                >
+                  <Plus size={18} /> Add Kid
+                </Button>
               </div>
 
               {kids.length > 0 && (
-                <div className="space-y-2 mb-6 bg-[#111] p-4 border border-[#333]">
-                  <div className="text-xs font-display text-neutral-500">ACTIVE_UNITS:</div>
+                <div className="mb-6 space-y-2">
+                  <p className="text-sm font-semibold text-gray-700">
+                    Added {kids.length} kid{kids.length !== 1 ? "s" : ""}
+                  </p>
                   {kids.map((kid, idx) => (
-                    <div key={idx} className="flex items-center justify-between bg-[#0a0a0a] p-2 border border-[#222]">
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 rounded" style={{ backgroundColor: kid.color }} />
-                        <span className="text-white text-sm">{kid.username}</span>
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-5 h-5 rounded-full"
+                          style={{ backgroundColor: kid.color }}
+                        />
+                        <div>
+                          <p className="font-semibold text-gray-900">{kid.name}</p>
+                          <p className="text-sm text-gray-600">@{kid.username}</p>
+                        </div>
                       </div>
-                      <HardwareButton
-                        type="button"
+                      <button
                         onClick={() => removeKid(idx)}
-                        className="px-2 py-1 text-xs"
-                        color="#FF0000"
-                        textColor="#FFF"
+                        className="p-1 hover:bg-gray-200 rounded-lg transition-colors"
+                        disabled={isLoading}
                       >
-                        X
-                      </HardwareButton>
+                        <Trash2 size={18} className="text-red-500" />
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
 
-              {error && <div className="text-red-500 text-sm mb-4">{error}</div>}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-4">
+                  {error}
+                </div>
+              )}
 
               <div className="flex gap-2">
-                <HardwareButton
-                  type="button"
-                  onClick={handleFinish}
-                  className="flex-1 py-3"
-                  color="#FF4F00"
-                  textColor="#000"
-                  disabled={isLoading}
+                <Button variant="secondary" className="flex-1" onClick={() => setStep("parent")} disabled={isLoading}>
+                  Back
+                </Button>
+                <Button
+                  variant="primary"
+                  className="flex-1"
+                  onClick={handleNext}
+                  disabled={isLoading || kids.length === 0}
                 >
-                  {isLoading ? "FINALIZING..." : "COMPLETE_SETUP"}
-                </HardwareButton>
+                  {isLoading ? "Setting up..." : "Done"}
+                </Button>
               </div>
-            </div>
-          </div>
-        )}
+            </Card>
+          )}
+        </div>
       </div>
     </PageTransition>
   );

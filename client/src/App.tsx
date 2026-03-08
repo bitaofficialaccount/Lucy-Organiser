@@ -27,7 +27,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     }
   }, [user, isLoading, setLocation]);
 
-  if (isLoading) return <div className="min-h-screen bg-[#1a1a1a]" />;
+  if (isLoading) return <div className="min-h-screen bg-gray-50" />;
   if (!user) return null;
 
   return <Component />;
@@ -36,10 +36,9 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function RouterContent() {
   const { user, isLoading } = useAuthContext();
   const { isNewUser } = useWizardContext();
-  const [location] = useLocation();
 
   if (isLoading) {
-    return <div className="min-h-screen bg-[#1a1a1a]" />;
+    return <div className="min-h-screen bg-gray-50" />;
   }
 
   // If user is authenticated and new, show setup wizard
@@ -48,7 +47,7 @@ function RouterContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {user && <Navigation />}
       <div className="flex-1 overflow-x-hidden">
         <Switch>
