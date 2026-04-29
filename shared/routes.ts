@@ -4,7 +4,9 @@ import {
   insertChoreSchema, chores, 
   insertAllowanceRequestSchema, allowanceRequests,
   insertMessageSchema, messages,
-  insertAppointmentSchema, appointments 
+  insertAppointmentSchema, appointments,
+  personalTasks,
+  reminders
 } from "./schema";
 
 export const errorSchemas = {
@@ -28,6 +30,7 @@ export const api = {
       input: z.object({
         username: z.string(),
         password: z.string(),
+        phone: z.string().optional(),
       }),
       responses: {
         201: z.custom<typeof users.$inferSelect>(),
@@ -85,6 +88,17 @@ export const api = {
           role: z.string(),
         }),
         404: errorSchemas.notFound,
+      }
+    },
+    updateProfile: {
+      method: "PATCH" as const,
+      path: "/api/auth/me" as const,
+      input: z.object({
+        phone: z.string().optional(),
+      }),
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        401: errorSchemas.unauthorized,
       }
     }
   },
@@ -214,11 +228,105 @@ export const api = {
       path: "/api/appointments" as const,
       input: z.object({
         title: z.string(),
-        date: z.string(),
+        date: z.string(), // YYYY-MM-DD
       }),
       responses: {
         201: z.custom<typeof appointments.$inferSelect>(),
         400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      }
+    },
+    delete: {
+      method: "DELETE" as const,
+      path: "/api/appointments/:id" as const,
+      responses: {
+        200: z.void(),
+        401: errorSchemas.unauthorized,
+      }
+    }
+  },
+  tasks: {
+    list: {
+      method: "GET" as const,
+      path: "/api/tasks" as const,
+      responses: {
+        200: z.array(z.custom<typeof personalTasks.$inferSelect>()),
+        401: errorSchemas.unauthorized,
+      }
+    },
+    create: {
+      method: "POST" as const,
+      path: "/api/tasks" as const,
+      input: z.object({
+        title: z.string(),
+      }),
+      responses: {
+        201: z.custom<typeof personalTasks.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      }
+    },
+    toggle: {
+      method: "PATCH" as const,
+      path: "/api/tasks/:id" as const,
+      responses: {
+        200: z.custom<typeof personalTasks.$inferSelect>(),
+        401: errorSchemas.unauthorized,
+      }
+    },
+    delete: {
+      method: "DELETE" as const,
+      path: "/api/tasks/:id" as const,
+      responses: {
+        200: z.void(),
+        401: errorSchemas.unauthorized,
+      }
+    }
+  },
+  reminders: {
+    list: {
+      method: "GET" as const,
+      path: "/api/reminders" as const,
+      responses: {
+        200: z.array(z.custom<typeof reminders.$inferSelect>()),
+        401: errorSchemas.unauthorized,
+      }
+    },
+    create: {
+      method: "POST" as const,
+      path: "/api/reminders" as const,
+      input: z.object({
+        title: z.string(),
+        time: z.string(), // HH:MM
+        recurring: z.enum(["none", "daily", "weekly"]).default("none"),
+        sound: z.enum(["bell", "chime", "beep"]).default("bell"),
+      }),
+      responses: {
+        201: z.custom<typeof reminders.$inferSelect>(),
+        400: errorSchemas.validation,
+        401: errorSchemas.unauthorized,
+      }
+    },
+    update: {
+      method: "PATCH" as const,
+      path: "/api/reminders/:id" as const,
+      input: z.object({
+        title: z.string().optional(),
+        time: z.string().optional(),
+        recurring: z.enum(["none", "daily", "weekly"]).optional(),
+        sound: z.enum(["bell", "chime", "beep"]).optional(),
+        enabled: z.boolean().optional(),
+      }),
+      responses: {
+        200: z.custom<typeof reminders.$inferSelect>(),
+        401: errorSchemas.unauthorized,
+      }
+    },
+    delete: {
+      method: "DELETE" as const,
+      path: "/api/reminders/:id" as const,
+      responses: {
+        200: z.void(),
         401: errorSchemas.unauthorized,
       }
     }

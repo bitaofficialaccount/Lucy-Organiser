@@ -4,7 +4,9 @@ import {
   chores, type Chore, type InsertChore,
   allowanceRequests, type AllowanceRequest, type InsertAllowanceRequest,
   messages, type Message, type InsertMessage,
-  appointments, type Appointment, type InsertAppointment
+  appointments, type Appointment, type InsertAppointment,
+  personalTasks, type PersonalTask, type InsertPersonalTask,
+  reminders, type Reminder, type InsertReminder,
 } from "@shared/schema";
 import { eq, or, and } from "drizzle-orm";
 
@@ -13,6 +15,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser & { role: string, parentId?: number | null, color?: string | null }): Promise<User>;
   updateUserBalance(id: number, amount: number): Promise<User | undefined>;
+  updateUserProfile(id: number, data: { phone?: string }): Promise<User | undefined>;
   getFamilyMembers(parentId: number): Promise<User[]>;
   
   getChores(userId: number, role: string): Promise<Chore[]>;
@@ -28,6 +31,17 @@ export interface IStorage {
 
   getAppointments(familyId: number): Promise<Appointment[]>;
   createAppointment(appointment: InsertAppointment): Promise<Appointment>;
+  deleteAppointment(id: number): Promise<void>;
+
+  getPersonalTasks(userId: number): Promise<PersonalTask[]>;
+  createPersonalTask(task: InsertPersonalTask): Promise<PersonalTask>;
+  togglePersonalTask(id: number): Promise<PersonalTask | undefined>;
+  deletePersonalTask(id: number): Promise<void>;
+
+  getReminders(userId: number): Promise<Reminder[]>;
+  createReminder(reminder: InsertReminder): Promise<Reminder>;
+  updateReminder(id: number, data: Partial<InsertReminder>): Promise<Reminder | undefined>;
+  deleteReminder(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -48,6 +62,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserBalance(id: number, amount: number): Promise<User | undefined> {
     const [user] = await db.update(users).set({ balance: amount }).where(eq(users.id, id)).returning();
+    return user;
+  }
+
+  async updateUserProfile(id: number, data: { phone?: string }): Promise<User | undefined> {
+    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
     return user;
   }
 
@@ -110,6 +129,48 @@ export class DatabaseStorage implements IStorage {
   async createAppointment(appointment: InsertAppointment): Promise<Appointment> {
     const [newAppt] = await db.insert(appointments).values(appointment).returning();
     return newAppt;
+  }
+
+  async deleteAppointment(id: number): Promise<void> {
+    await db.delete(appointments).where(eq(appointments.id, id));
+  }
+
+  async getPersonalTasks(userId: number): Promise<PersonalTask[]> {
+    return await db.select().from(personalTasks).where(eq(personalTasks.userId, userId));
+  }
+
+  async createPersonalTask(task: InsertPersonalTask): Promise<PersonalTask> {
+    const [newTask] = await db.insert(personalTasks).values(task).returning();
+    return newTask;
+  }
+
+  async togglePersonalTask(id: number): Promise<PersonalTask | undefined> {
+    const [task] = await db.select().from(personalTasks).where(eq(personalTasks.id, id));
+    if (!task) return undefined;
+    const [updated] = await db.update(personalTasks).set({ isDone: !task.isDone }).where(eq(personalTasks.id, id)).returning();
+    return updated;
+  }
+
+  async deletePersonalTask(id: number): Promise<void> {
+    await db.delete(personalTasks).where(eq(personalTasks.id, id));
+  }
+
+  async getReminders(userId: number): Promise<Reminder[]> {
+    return await db.select().from(reminders).where(eq(reminders.userId, userId));
+  }
+
+  async createReminder(reminder: InsertReminder): Promise<Reminder> {
+    const [newReminder] = await db.insert(reminders).values(reminder).returning();
+    return newReminder;
+  }
+
+  async updateReminder(id: number, data: Partial<InsertReminder>): Promise<Reminder | undefined> {
+    const [updated] = await db.update(reminders).set(data).where(eq(reminders.id, id)).returning();
+    return updated;
+  }
+
+  async deleteReminder(id: number): Promise<void> {
+    await db.delete(reminders).where(eq(reminders.id, id));
   }
 }
 
