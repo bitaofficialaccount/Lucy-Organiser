@@ -50,7 +50,7 @@ function RouterContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {user && <Navigation />}
-      <div className="flex-1 overflow-x-hidden">
+      <div className="flex-1 overflow-x-hidden pb-16 md:pb-0">
         <Switch>
           <Route path="/auth" component={AuthPage} />
           <Route path="/kid-login" component={KidLogin} />

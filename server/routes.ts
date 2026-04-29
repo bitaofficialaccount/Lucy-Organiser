@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import passport from "passport";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { setupAuth } from "./auth";
@@ -70,13 +71,15 @@ export async function registerRoutes(
   });
 
   app.post(api.auth.login.path, (req, res, next) => {
-    const passport = require("passport");
     passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return res.status(500).json({ message: "Internal server error" });
-      if (!user) return res.status(401).json(info);
+      if (!user) return res.status(401).json(info || { message: "Invalid username or password" });
       req.login(user, (err: any) => {
         if (err) return res.status(500).json({ message: "Internal server error" });
-        res.status(200).json(user);
+        req.session.save((err) => {
+          if (err) return res.status(500).json({ message: "Session save failed" });
+          res.status(200).json(user);
+        });
       });
     })(req, res, next);
   });
