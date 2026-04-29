@@ -16,7 +16,11 @@ import Chores from "./pages/Chores";
 import Ledger from "./pages/Ledger";
 import Calendar from "./pages/Calendar";
 import Comms from "./pages/Comms";
+import Tasks from "./pages/Tasks";
+import Reminders from "./pages/Reminders";
+import Profile from "./pages/Profile";
 import { Navigation } from "./components/Navigation";
+import { ReminderNotifier } from "./components/ReminderNotifier";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuthContext();
@@ -50,15 +54,19 @@ function RouterContent() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {user && <Navigation />}
+      {user && <ReminderNotifier />}
       <div className="flex-1 overflow-x-hidden pb-16 md:pb-0">
         <Switch>
           <Route path="/auth" component={AuthPage} />
           <Route path="/kid-login" component={KidLogin} />
           <Route path="/">{() => <ProtectedRoute component={Dashboard} />}</Route>
           <Route path="/chores">{() => <ProtectedRoute component={Chores} />}</Route>
+          <Route path="/tasks">{() => <ProtectedRoute component={Tasks} />}</Route>
+          <Route path="/reminders">{() => <ProtectedRoute component={Reminders} />}</Route>
           <Route path="/ledger">{() => <ProtectedRoute component={Ledger} />}</Route>
           <Route path="/calendar">{() => <ProtectedRoute component={Calendar} />}</Route>
           <Route path="/comms">{() => <ProtectedRoute component={Comms} />}</Route>
+          <Route path="/profile">{() => <ProtectedRoute component={Profile} />}</Route>
           <Route component={NotFound} />
         </Switch>
       </div>

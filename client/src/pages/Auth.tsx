@@ -7,6 +7,7 @@ import { Button, Card, Input, PageTransition } from "@/components/ui/modern";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { User, Baby } from "lucide-react";
+import logoPath from "@assets/LUCY_ORG._LOGO1_1777455425900.png";
 
 type Mode = "choose" | "parent_signin" | "parent_signup";
 
@@ -92,16 +93,22 @@ export default function AuthPage() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-blue-50 to-indigo-100 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
+            className="text-center mb-6"
           >
-            <div className="text-6xl mb-3">🏠</div>
-            <h1 className="text-4xl font-bold text-gray-900">Lucy Organiser</h1>
-            <p className="text-gray-600 mt-2">Family Connection</p>
+            <img
+              src={logoPath}
+              alt="Lucy Organiser"
+              className="w-44 h-44 md:w-52 md:h-52 mx-auto -mb-2 object-contain"
+              data-testid="img-logo"
+            />
+            <p className="text-gray-700 mt-1 font-semibold text-sm md:text-base">
+              Open-Source Family Organising
+            </p>
           </motion.div>
 
           {mode === "choose" && (
@@ -222,6 +229,10 @@ export default function AuthPage() {
             </motion.div>
           )}
         </div>
+
+        <p className="text-xs text-gray-400 mt-8 text-center">
+          🐾 Open-Source. Family-Friendly. Always Yours.
+        </p>
       </div>
     </PageTransition>
   );

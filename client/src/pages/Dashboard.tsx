@@ -1,10 +1,25 @@
 import { useLocation } from "wouter";
-import { format, isSameDay, isToday, isFuture, addDays } from "date-fns";
+import { format } from "date-fns";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useFamilyMembers } from "@/hooks/use-family";
 import { useChores, useAllowanceRequests, useAppointments } from "@/hooks/use-tasks";
+import { usePersonalTasks, useReminders } from "@/hooks/use-tasks-reminders";
 import { Button, Card, PageTransition } from "@/components/ui/modern";
-import { CheckSquare, Wallet, Calendar, MessageCircle, TrendingUp, Clock, Sparkles } from "lucide-react";
+import {
+  CheckSquare, Wallet, Calendar, MessageCircle, Clock, Sparkles,
+  ListTodo, Bell, Phone, ShieldAlert, User as UserIcon
+} from "lucide-react";
+import logoPath from "@assets/LUCY_ORG._LOGO1_1777455425900.png";
+
+// helpers for YYYY-MM-DD comparisons
+function todayStr() {
+  return format(new Date(), "yyyy-MM-dd");
+}
+function plusDaysStr(n: number) {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return format(d, "yyyy-MM-dd");
+}
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -13,6 +28,8 @@ export default function Dashboard() {
   const { data: chores } = useChores();
   const { data: requests } = useAllowanceRequests();
   const { data: appointments } = useAppointments();
+  const { data: tasks } = usePersonalTasks();
+  const { data: reminders } = useReminders();
 
   if (!user) return null;
   const isKid = user.role === "kid";
@@ -25,12 +42,11 @@ export default function Dashboard() {
     return "Good evening";
   })();
 
+  const today = todayStr();
+  const weekOut = plusDaysStr(7);
   const upcomingEvents = appointments
-    ?.filter((app) => {
-      const d = new Date(app.date);
-      return isToday(d) || (isFuture(d) && d <= addDays(new Date(), 7));
-    })
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    ?.filter((a) => a.date >= today && a.date <= weekOut)
+    .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 3);
 
   const myChores = isKid
@@ -41,29 +57,39 @@ export default function Dashboard() {
     ? requests?.filter((r) => r.kidId === user.id && r.status === "pending") || []
     : requests?.filter((r) => r.status === "pending") || [];
 
+  const openTasks = tasks?.filter((t) => !t.isDone) || [];
+  const enabledReminders = reminders?.filter((r) => r.enabled) || [];
+
+  // Find the parent (for kids) to get phone number
+  const parent = isKid ? members?.find((m) => m.id === user.parentId) : null;
+  const parentPhone = parent?.phone;
+
   return (
     <PageTransition>
       <div className="max-w-5xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
-        {/* Greeting Hero */}
-        <div className="mb-6">
-          <p className="text-gray-600 text-base md:text-lg">{greeting},</p>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
-            {user.username}{" "}
-            <span className="inline-block animate-bounce">
-              {isKid ? "🌟" : "👋"}
-            </span>
-          </h1>
+        {/* Greeting Hero with mini logo */}
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <p className="text-gray-600 text-base md:text-lg">{greeting},</p>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+              {user.username}{" "}
+              <span className="inline-block animate-bounce">{isKid ? "🌟" : "👋"}</span>
+            </h1>
+          </div>
+          <img
+            src={logoPath}
+            alt="Lucy"
+            className="w-16 h-16 md:w-20 md:h-20 object-contain opacity-90"
+          />
         </div>
 
         {isKid ? (
           /* ========== KID DASHBOARD ========== */
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* Big balance card */}
             <Card
               className="text-white border-0 shadow-lg"
-              style={{
-                background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
-              }}
+              style={{ background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}cc 100%)` }}
             >
               <p className="text-white/80 text-sm font-semibold mb-1">Your Allowance</p>
               <p className="text-5xl md:text-6xl font-bold mb-4" data-testid="text-balance">
@@ -79,23 +105,76 @@ export default function Dashboard() {
               </Button>
             </Card>
 
-            {/* Quick stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <Card
-                onClick={() => setLocation("/chores")}
-                className="text-center"
-              >
-                <CheckSquare className="mx-auto mb-2 text-blue-500" size={24} />
-                <p className="text-3xl font-bold text-gray-900">{myChores.length}</p>
-                <p className="text-xs text-gray-600 font-semibold mt-1">Chores to do</p>
+            {/* IF LOST card - shows parent's phone */}
+            {parentPhone ? (
+              <Card className="border-2 border-orange-300 bg-gradient-to-br from-orange-50 to-yellow-50">
+                <div className="flex items-start gap-3">
+                  <div className="bg-orange-500 text-white rounded-2xl p-2 shrink-0">
+                    <ShieldAlert size={22} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-orange-900 text-lg leading-tight">If you're lost</p>
+                    <p className="text-sm text-orange-800 mt-0.5">
+                      Show this screen to a trusted adult and ask them to call:
+                    </p>
+                    <div className="mt-3 bg-white border-2 border-orange-200 rounded-2xl p-3 flex items-center gap-3">
+                      <Phone className="text-orange-500 shrink-0" size={22} />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-500 font-semibold uppercase">
+                          Parent: {parent?.username}
+                        </p>
+                        <a
+                          href={`tel:${parentPhone}`}
+                          className="text-2xl md:text-3xl font-bold text-orange-700 tracking-wide block truncate"
+                          data-testid="text-parent-phone"
+                        >
+                          {parentPhone}
+                        </a>
+                      </div>
+                      <a
+                        href={`tel:${parentPhone}`}
+                        className="bg-orange-500 hover:bg-orange-600 text-white rounded-full p-3 shrink-0 transition-colors"
+                        data-testid="button-call-parent"
+                      >
+                        <Phone size={20} />
+                      </a>
+                    </div>
+                  </div>
+                </div>
               </Card>
-              <Card
-                onClick={() => setLocation("/calendar")}
-                className="text-center"
-              >
-                <Calendar className="mx-auto mb-2 text-purple-500" size={24} />
-                <p className="text-3xl font-bold text-gray-900">{upcomingEvents?.length || 0}</p>
-                <p className="text-xs text-gray-600 font-semibold mt-1">Events this week</p>
+            ) : (
+              <Card className="border-2 border-dashed border-gray-300 bg-gray-50">
+                <div className="flex items-center gap-3 text-gray-500">
+                  <ShieldAlert size={20} />
+                  <p className="text-sm">
+                    Ask your parent to add their phone number in their Profile,
+                    so it can show here if you're ever lost.
+                  </p>
+                </div>
+              </Card>
+            )}
+
+            {/* Quick stats - 4 across */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Card onClick={() => setLocation("/chores")} className="text-center !p-4">
+                <CheckSquare className="mx-auto mb-1 text-blue-500" size={22} />
+                <p className="text-2xl font-bold text-gray-900">{myChores.length}</p>
+                <p className="text-[11px] text-gray-600 font-semibold">Chores</p>
+              </Card>
+              <Card onClick={() => setLocation("/tasks")} className="text-center !p-4">
+                <ListTodo className="mx-auto mb-1 text-green-500" size={22} />
+                <p className="text-2xl font-bold text-gray-900">{openTasks.length}</p>
+                <p className="text-[11px] text-gray-600 font-semibold">My Tasks</p>
+              </Card>
+              <Card onClick={() => setLocation("/reminders")} className="text-center !p-4">
+                <Bell className="mx-auto mb-1 text-purple-500" size={22} />
+                <p className="text-2xl font-bold text-gray-900">{enabledReminders.length}</p>
+                <p className="text-[11px] text-gray-600 font-semibold">Reminders</p>
+              </Card>
+              <Card onClick={() => setLocation("/calendar")} className="text-center !p-4">
+                <Calendar className="mx-auto mb-1 text-pink-500" size={22} />
+                <p className="text-2xl font-bold text-gray-900">{upcomingEvents?.length || 0}</p>
+                <p className="text-[11px] text-gray-600 font-semibold">Events</p>
               </Card>
             </div>
 
@@ -138,10 +217,10 @@ export default function Dashboard() {
                         <div>
                           <p className="font-semibold text-gray-900">{event.title}</p>
                           <p className="text-xs text-gray-600 mt-0.5">
-                            {format(new Date(event.date), "EEE, MMM d")}
+                            {format(new Date(event.date + "T12:00:00"), "EEE, MMM d")}
                           </p>
                         </div>
-                        {isToday(new Date(event.date)) && (
+                        {event.date === today && (
                           <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2.5 py-1 rounded-full">
                             Today
                           </span>
@@ -166,19 +245,19 @@ export default function Dashboard() {
               <Button
                 variant="secondary"
                 className="w-full !py-4"
-                onClick={() => setLocation("/calendar")}
+                onClick={() => setLocation("/reminders")}
               >
-                <Calendar size={18} /> Calendar
+                <Bell size={18} /> Reminders
               </Button>
             </div>
           </div>
         ) : (
           /* ========== PARENT DASHBOARD ========== */
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* Quick stats grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <Card className="text-center !p-4">
-                <p className="text-3xl font-bold text-blue-600">{members?.length || 0}</p>
+                <p className="text-3xl font-bold text-blue-600">{(members?.filter(m => m.role === 'kid').length) || 0}</p>
                 <p className="text-xs text-gray-600 font-semibold mt-1">Kids</p>
               </Card>
               <Card className="text-center !p-4">
@@ -187,13 +266,32 @@ export default function Dashboard() {
               </Card>
               <Card className="text-center !p-4">
                 <p className="text-3xl font-bold text-red-500">{pendingRequests.length}</p>
-                <p className="text-xs text-gray-600 font-semibold mt-1">Pending requests</p>
+                <p className="text-xs text-gray-600 font-semibold mt-1">Money requests</p>
               </Card>
               <Card className="text-center !p-4">
                 <p className="text-3xl font-bold text-purple-500">{upcomingEvents?.length || 0}</p>
                 <p className="text-xs text-gray-600 font-semibold mt-1">Events soon</p>
               </Card>
             </div>
+
+            {/* Phone reminder if not set */}
+            {!user.phone && (
+              <Card
+                onClick={() => setLocation("/profile")}
+                className="border-2 border-orange-300 bg-orange-50 cursor-pointer hover:bg-orange-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldAlert className="text-orange-500 shrink-0" size={24} />
+                  <div className="flex-1">
+                    <p className="font-bold text-orange-900">Add your phone number</p>
+                    <p className="text-sm text-orange-800">
+                      Your kids' home screen will show it as an "If Lost" emergency number.
+                      Tap to add it now →
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            )}
 
             {/* Pending allowance requests - URGENT */}
             {pendingRequests.length > 0 && (
@@ -221,11 +319,7 @@ export default function Dashboard() {
                             {kid?.username} wants ${(req.amount / 100).toFixed(2)}
                           </span>
                         </div>
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => setLocation("/ledger")}
-                        >
+                        <Button variant="primary" size="sm" onClick={() => setLocation("/ledger")}>
                           Review
                         </Button>
                       </div>
@@ -236,11 +330,11 @@ export default function Dashboard() {
             )}
 
             {/* Family members */}
-            {members && members.length > 0 && (
+            {members && members.filter((m) => m.role === "kid").length > 0 && (
               <div>
                 <h2 className="text-lg font-bold text-gray-900 mb-3">Your Kids 👨‍👩‍👧‍👦</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {members.map((kid) => {
+                  {members.filter((m) => m.role === "kid").map((kid) => {
                     const kidChores = chores?.filter((c) => c.kidId === kid.id && !c.isDone) || [];
                     return (
                       <Card
@@ -278,6 +372,20 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* My personal stuff */}
+            <div className="grid grid-cols-2 gap-3">
+              <Card onClick={() => setLocation("/tasks")} className="text-center !p-4">
+                <ListTodo className="mx-auto mb-1 text-green-500" size={22} />
+                <p className="text-2xl font-bold text-gray-900">{openTasks.length}</p>
+                <p className="text-[11px] text-gray-600 font-semibold">My To-Dos</p>
+              </Card>
+              <Card onClick={() => setLocation("/reminders")} className="text-center !p-4">
+                <Bell className="mx-auto mb-1 text-purple-500" size={22} />
+                <p className="text-2xl font-bold text-gray-900">{enabledReminders.length}</p>
+                <p className="text-[11px] text-gray-600 font-semibold">Reminders</p>
+              </Card>
+            </div>
+
             {/* Upcoming events */}
             {upcomingEvents && upcomingEvents.length > 0 && (
               <div>
@@ -291,10 +399,10 @@ export default function Dashboard() {
                         <div>
                           <p className="font-semibold text-gray-900">{event.title}</p>
                           <p className="text-xs text-gray-600 mt-0.5">
-                            {format(new Date(event.date), "EEEE, MMMM d")}
+                            {format(new Date(event.date + "T12:00:00"), "EEEE, MMMM d")}
                           </p>
                         </div>
-                        {isToday(new Date(event.date)) && (
+                        {event.date === today && (
                           <span className="bg-orange-100 text-orange-700 text-xs font-bold px-2.5 py-1 rounded-full">
                             Today
                           </span>
@@ -306,7 +414,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Parent tools - desktop has more space */}
+            {/* Parent tools */}
             <Card>
               <h3 className="font-bold text-gray-900 mb-3">Quick Actions</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -319,8 +427,8 @@ export default function Dashboard() {
                 <Button variant="secondary" className="w-full" onClick={() => setLocation("/calendar")}>
                   <Calendar size={16} /> Calendar
                 </Button>
-                <Button variant="secondary" className="w-full" onClick={() => setLocation("/comms")}>
-                  <MessageCircle size={16} /> Messages
+                <Button variant="secondary" className="w-full" onClick={() => setLocation("/profile")}>
+                  <UserIcon size={16} /> Profile
                 </Button>
               </div>
             </Card>

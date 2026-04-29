@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { useWizardContext } from "@/contexts/WizardContext";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useUpdateProfile } from "@/hooks/use-tasks-reminders";
 import { Button, Card, Input, PageTransition, Header } from "@/components/ui/modern";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { generateRandomName, generateRandomUsername } from "@/lib/utils";
-import { Dice6, Plus, Trash2 } from "lucide-react";
+import { Dice6, Plus, Trash2, Phone } from "lucide-react";
 
 const COLORS = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA502", "#9D84B7"];
 
 export default function SetupWizard() {
   const { setIsNewUser } = useWizardContext();
   const { login } = useAuthContext();
-  const [step, setStep] = useState<"parent" | "kids">("parent");
+  const updateProfile = useUpdateProfile();
+  const [step, setStep] = useState<"parent" | "phone" | "kids">("parent");
+  const [parentPhone, setParentPhone] = useState("");
 
   const [kidName, setKidName] = useState("");
   const [kidUsername, setKidUsername] = useState("");
@@ -40,6 +43,12 @@ export default function SetupWizard() {
 
   const handleNext = async () => {
     if (step === "parent") {
+      setStep("phone");
+    } else if (step === "phone") {
+      // Save phone (optional)
+      if (parentPhone.trim()) {
+        await updateProfile.mutateAsync({ phone: parentPhone.trim() });
+      }
       setStep("kids");
     } else {
       // Create all kids
@@ -87,10 +96,40 @@ export default function SetupWizard() {
           {step === "parent" && (
             <Card className="shadow-lg">
               <Header title="Let's Set Up Your Family 👨‍👩‍👧‍👦" />
-              <p className="text-gray-600 mb-6">You are now a Parent account. Next, add your kids!</p>
+              <p className="text-gray-600 mb-6">You are now a Parent account. Just two quick steps!</p>
               <Button variant="primary" size="lg" className="w-full" onClick={handleNext}>
-                Add Kids →
+                Continue →
               </Button>
+            </Card>
+          )}
+
+          {step === "phone" && (
+            <Card className="shadow-lg">
+              <Header title="Your Phone Number" />
+              <p className="text-gray-600 mb-4 text-sm">
+                We'll show this on your kids' home screen as an
+                <strong className="text-orange-700"> "If Lost" </strong>
+                emergency number, so anyone helping a lost child can call you. (Optional — you can add it later.)
+              </p>
+              <div className="relative mb-4">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <Input
+                  type="tel"
+                  value={parentPhone}
+                  onChange={(e) => setParentPhone(e.target.value)}
+                  placeholder="(555) 123-4567"
+                  className="!pl-10"
+                  data-testid="input-parent-phone"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button variant="secondary" className="flex-1" onClick={() => setStep("kids")}>
+                  Skip
+                </Button>
+                <Button variant="primary" className="flex-1" onClick={handleNext} data-testid="button-save-phone-next">
+                  Save & Continue →
+                </Button>
+              </div>
             </Card>
           )}
 
@@ -216,7 +255,7 @@ export default function SetupWizard() {
               )}
 
               <div className="flex gap-2">
-                <Button variant="secondary" className="flex-1" onClick={() => setStep("parent")} disabled={isLoading}>
+                <Button variant="secondary" className="flex-1" onClick={() => setStep("phone")} disabled={isLoading}>
                   Back
                 </Button>
                 <Button

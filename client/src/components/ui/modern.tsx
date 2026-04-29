@@ -116,10 +116,12 @@ export function Header({ title, subtitle }: { title: string; subtitle?: string }
 export function Modal({
   isOpen,
   onClose,
+  title,
   children,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  title?: string;
   children: React.ReactNode;
 }) {
   if (!isOpen) return null;
@@ -131,9 +133,10 @@ export function Modal({
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-white rounded-2xl p-6 max-w-md w-full"
+        className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
+        {title && <h3 className="text-2xl font-bold text-gray-900 mb-4">{title}</h3>}
         {children}
       </motion.div>
     </div>
