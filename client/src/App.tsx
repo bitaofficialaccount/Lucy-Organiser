@@ -9,6 +9,7 @@ import { WizardProvider, useWizardContext } from "@/contexts/WizardContext";
 import NotFound from "@/pages/not-found";
 
 import AuthPage from "./pages/Auth";
+import KidLogin from "./pages/KidLogin";
 import SetupWizard from "./pages/SetupWizard";
 import Dashboard from "./pages/Dashboard";
 import Chores from "./pages/Chores";
@@ -19,7 +20,7 @@ import { Navigation } from "./components/Navigation";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user, isLoading } = useAuthContext();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -41,8 +42,8 @@ function RouterContent() {
     return <div className="min-h-screen bg-gray-50" />;
   }
 
-  // If user is authenticated and new, show setup wizard
-  if (user && isNewUser) {
+  // If parent just registered, show setup wizard
+  if (user && user.role === "parent" && isNewUser) {
     return <SetupWizard />;
   }
 
@@ -52,6 +53,7 @@ function RouterContent() {
       <div className="flex-1 overflow-x-hidden">
         <Switch>
           <Route path="/auth" component={AuthPage} />
+          <Route path="/kid-login" component={KidLogin} />
           <Route path="/">{() => <ProtectedRoute component={Dashboard} />}</Route>
           <Route path="/chores">{() => <ProtectedRoute component={Chores} />}</Route>
           <Route path="/ledger">{() => <ProtectedRoute component={Ledger} />}</Route>

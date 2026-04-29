@@ -14,13 +14,14 @@ export function Button({
   size = "md",
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "danger";
+  variant?: "primary" | "secondary" | "danger" | "ghost";
   size?: "sm" | "md" | "lg";
 }) {
   const variants = {
     primary: "bg-blue-500 hover:bg-blue-600 text-white",
-    secondary: "bg-gray-200 hover:bg-gray-300 text-gray-900",
+    secondary: "bg-gray-100 hover:bg-gray-200 text-gray-900",
     danger: "bg-red-500 hover:bg-red-600 text-white",
+    ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
   };
 
   const sizes = {
@@ -32,7 +33,7 @@ export function Button({
   return (
     <button
       className={cn(
-        "rounded-full font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
+        "rounded-full font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2",
         variants[variant],
         sizes[size],
         className
@@ -47,12 +48,24 @@ export function Button({
 export function Card({
   children,
   className,
+  style,
+  onClick,
 }: {
   children: React.ReactNode;
   className?: string;
+  style?: React.CSSProperties;
+  onClick?: () => void;
 }) {
   return (
-    <div className={cn("bg-white rounded-2xl shadow-sm p-6", className)}>
+    <div
+      className={cn(
+        "bg-white rounded-2xl shadow-sm p-6",
+        onClick && "cursor-pointer hover:shadow-md transition-shadow",
+        className
+      )}
+      style={style}
+      onClick={onClick}
+    >
       {children}
     </div>
   );
@@ -91,40 +104,38 @@ export function PageTransition({
   );
 }
 
-export function Header({ title }: { title: string }) {
+export function Header({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="mb-8">
+    <div className="mb-6">
       <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+      {subtitle && <p className="text-gray-600 mt-1">{subtitle}</p>}
     </div>
   );
 }
 
-export function KidCard({
-  name,
-  username,
-  color,
-  onClick,
+export function Modal({
+  isOpen,
+  onClose,
+  children,
 }: {
-  name: string;
-  username: string;
-  color: string;
-  onClick: () => void;
+  isOpen: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
 }) {
+  if (!isOpen) return null;
   return (
-    <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      onClick={onClick}
-      className="w-full text-left"
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      onClick={onClose}
     >
-      <Card className={cn("cursor-pointer border-2", `border-[${color}]`)}>
-        <div
-          className="w-12 h-12 rounded-full mb-3"
-          style={{ backgroundColor: color }}
-        />
-        <h3 className="text-lg font-bold text-gray-900">{name}</h3>
-        <p className="text-sm text-gray-600">@{username}</p>
-      </Card>
-    </motion.button>
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-2xl p-6 max-w-md w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </motion.div>
+    </div>
   );
 }

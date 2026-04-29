@@ -1,18 +1,21 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
+import { motion } from "framer-motion";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useWizardContext } from "@/contexts/WizardContext";
-import { Button, Card, Input, PageTransition, Header } from "@/components/ui/modern";
+import { Button, Card, Input, PageTransition } from "@/components/ui/modern";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { Users } from "lucide-react";
+import { User, Baby } from "lucide-react";
+
+type Mode = "choose" | "parent_signin" | "parent_signup";
 
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user, isLoading, login } = useAuthContext();
   const { setIsNewUser } = useWizardContext();
 
-  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [mode, setMode] = useState<Mode>("choose");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,10 +30,7 @@ export default function AuthPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="animate-spin text-4xl mb-4">🔄</div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
+        <p className="text-gray-600">Loading...</p>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export default function AuthPage() {
     setIsSubmitting(true);
 
     try {
-      if (isLoginMode) {
+      if (mode === "parent_signin") {
         const input = api.auth.login.input.parse({ username, password });
         const res = await fetch(api.auth.login.path, {
           method: api.auth.login.method,
@@ -54,14 +54,13 @@ export default function AuthPage() {
 
         const data = await res.json();
         if (!res.ok) {
-          setError(data.message || "Login failed");
+          setError(data.message || "Sign in failed");
           return;
         }
 
-        const userData = api.auth.login.responses[200].parse(data);
-        login(userData);
+        login(data);
         setLocation("/");
-      } else {
+      } else if (mode === "parent_signup") {
         const input = api.auth.registerParent.input.parse({ username, password });
         const res = await fetch(api.auth.registerParent.path, {
           method: api.auth.registerParent.method,
@@ -72,12 +71,11 @@ export default function AuthPage() {
 
         const data = await res.json();
         if (!res.ok) {
-          setError(data.message || "Registration failed");
+          setError(data.message || "Could not create account");
           return;
         }
 
-        const userData = api.auth.registerParent.responses[201].parse(data);
-        login(userData);
+        login(data);
         setIsNewUser(true);
         setLocation("/");
       }
@@ -85,7 +83,7 @@ export default function AuthPage() {
       if (err instanceof z.ZodError) {
         setError(err.errors[0].message);
       } else {
-        setError("An error occurred");
+        setError("Something went wrong");
       }
     } finally {
       setIsSubmitting(false);
@@ -96,87 +94,133 @@ export default function AuthPage() {
     <PageTransition>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center p-4">
         <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="text-5xl mb-3">👨‍👩‍👧‍👦</div>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-8"
+          >
+            <div className="text-6xl mb-3">🏠</div>
             <h1 className="text-4xl font-bold text-gray-900">Lucy Organiser</h1>
             <p className="text-gray-600 mt-2">Family Connection</p>
-          </div>
+          </motion.div>
 
-          <Card className="shadow-lg border-0">
-            <div className="flex gap-4 mb-6">
-              <button
-                onClick={() => {
-                  setIsLoginMode(true);
-                  setError("");
-                }}
-                className={`flex-1 py-2 font-semibold rounded-full transition-colors ${
-                  isLoginMode
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => {
-                  setIsLoginMode(false);
-                  setError("");
-                }}
-                className={`flex-1 py-2 font-semibold rounded-full transition-colors ${
-                  !isLoginMode
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                Create Account
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Username
-                </label>
-                <Input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Password
-                </label>
-                <Input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  disabled={isSubmitting}
-                  required
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
-                  {error}
-                </div>
-              )}
-
+          {mode === "choose" && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="space-y-3"
+            >
               <Button
-                type="submit"
                 variant="primary"
                 size="lg"
-                className="w-full"
-                disabled={isSubmitting || !username.trim() || !password.trim()}
+                className="w-full !rounded-2xl py-5"
+                onClick={() => setMode("parent_signin")}
+                data-testid="button-parent-signin"
               >
-                {isSubmitting ? "Loading..." : isLoginMode ? "Sign In" : "Create Account"}
+                <User size={20} /> Parent Sign In
               </Button>
-            </form>
-          </Card>
+
+              <Button
+                variant="secondary"
+                size="lg"
+                className="w-full !rounded-2xl py-5 !bg-yellow-400 hover:!bg-yellow-500 !text-gray-900"
+                onClick={() => setLocation("/kid-login")}
+                data-testid="button-kid-signin"
+              >
+                <Baby size={20} /> Sign In with Kid ID
+              </Button>
+
+              <div className="text-center pt-4">
+                <button
+                  className="text-sm text-blue-600 hover:underline"
+                  onClick={() => setMode("parent_signup")}
+                  data-testid="button-create-account"
+                >
+                  New family? Create an account
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {(mode === "parent_signin" || mode === "parent_signup") && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              <Card className="shadow-lg">
+                <div className="mb-4">
+                  <button
+                    onClick={() => {
+                      setMode("choose");
+                      setError("");
+                      setUsername("");
+                      setPassword("");
+                    }}
+                    className="text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    ← Back
+                  </button>
+                </div>
+
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  {mode === "parent_signin" ? "Parent Sign In" : "Create Family"}
+                </h2>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Username
+                    </label>
+                    <Input
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Enter your username"
+                      disabled={isSubmitting}
+                      required
+                      autoFocus
+                      data-testid="input-username"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Password
+                    </label>
+                    <Input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      disabled={isSubmitting}
+                      required
+                      data-testid="input-password"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    disabled={isSubmitting || !username.trim() || !password.trim()}
+                    data-testid="button-submit"
+                  >
+                    {isSubmitting
+                      ? "Loading..."
+                      : mode === "parent_signin"
+                      ? "Sign In"
+                      : "Create Account"}
+                  </Button>
+                </form>
+              </Card>
+            </motion.div>
+          )}
         </div>
       </div>
     </PageTransition>

@@ -74,6 +74,18 @@ export const api = {
         200: z.custom<typeof users.$inferSelect>(),
         401: errorSchemas.unauthorized,
       }
+    },
+    lookup: {
+      method: "GET" as const,
+      path: "/api/auth/lookup/:username" as const,
+      responses: {
+        200: z.object({
+          username: z.string(),
+          color: z.string().nullable(),
+          role: z.string(),
+        }),
+        404: errorSchemas.notFound,
+      }
     }
   },
   family: {

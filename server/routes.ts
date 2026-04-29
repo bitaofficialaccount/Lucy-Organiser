@@ -29,7 +29,10 @@ export async function registerRoutes(
 
       req.login(user, (err) => {
         if (err) return res.status(500).json({ message: "Login failed after registration" });
-        res.status(201).json(user);
+        req.session.save((err) => {
+          if (err) return res.status(500).json({ message: "Session save failed" });
+          res.status(201).json(user);
+        });
       });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -88,6 +91,16 @@ export async function registerRoutes(
   app.get(api.auth.me.path, (req, res) => {
     if (!req.isAuthenticated()) return res.status(401).json({ message: "Not authenticated" });
     res.status(200).json(req.user);
+  });
+
+  app.get(api.auth.lookup.path, async (req, res) => {
+    const user = await storage.getUserByUsername(req.params.username);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json({
+      username: user.username,
+      color: user.color,
+      role: user.role,
+    });
   });
 
   // Check auth middleware
