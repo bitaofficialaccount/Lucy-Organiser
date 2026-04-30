@@ -7,7 +7,6 @@ import { Button, Card, Input, PageTransition } from "@/components/ui/modern";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import { User, Baby } from "lucide-react";
-import logoPath from "@assets/LUCY_ORG._LOGO1_1777455425900.png";
 
 type Mode = "choose" | "parent_signin" | "parent_signup";
 
@@ -100,13 +99,12 @@ export default function AuthPage() {
             animate={{ opacity: 1, y: 0 }}
             className="text-center mb-6"
           >
-            <img
-              src={logoPath}
-              alt="Lucy Organiser"
-              className="w-44 h-44 md:w-52 md:h-52 mx-auto -mb-2 object-contain"
-              data-testid="img-logo"
-            />
-            <p className="text-gray-700 mt-1 font-semibold text-sm md:text-base">
+            <div className="text-6xl mb-3" data-testid="img-logo">🏠</div>
+            <h1 className="text-4xl font-bold">
+              <span className="text-yellow-500">Lucy</span>
+              <span className="text-blue-600"> Organiser</span>
+            </h1>
+            <p className="text-gray-700 mt-2 font-semibold text-sm md:text-base">
               Open-Source Family Organising
             </p>
           </motion.div>

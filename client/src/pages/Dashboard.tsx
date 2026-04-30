@@ -9,7 +9,6 @@ import {
   CheckSquare, Wallet, Calendar, MessageCircle, Clock, Sparkles,
   ListTodo, Bell, Phone, ShieldAlert, User as UserIcon
 } from "lucide-react";
-import logoPath from "@assets/LUCY_ORG._LOGO1_1777455425900.png";
 
 // helpers for YYYY-MM-DD comparisons
 function todayStr() {
@@ -76,11 +75,7 @@ export default function Dashboard() {
               <span className="inline-block animate-bounce">{isKid ? "🌟" : "👋"}</span>
             </h1>
           </div>
-          <img
-            src={logoPath}
-            alt="Lucy"
-            className="w-16 h-16 md:w-20 md:h-20 object-contain opacity-90"
-          />
+          <div className="text-5xl md:text-6xl">🏠</div>
         </div>
 
         {isKid ? (

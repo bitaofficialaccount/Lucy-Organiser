@@ -8,7 +8,6 @@ import {
   ListTodo, Bell, MoreHorizontal, User as UserIcon, X
 } from "lucide-react";
 import { api } from "@shared/routes";
-import logoPath from "@assets/LUCY_ORG._LOGO1_1777455425900.png";
 
 export function Navigation() {
   const [location, setLocation] = useLocation();
@@ -84,8 +83,8 @@ export function Navigation() {
       {/* DESKTOP TOP BAR */}
       <div className="hidden md:block bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center justify-between gap-4">
-          <button onClick={() => setLocation("/")} className="flex items-center gap-3 shrink-0">
-            <img src={logoPath} alt="Lucy Organiser" className="w-12 h-12 object-contain" />
+          <button onClick={() => setLocation("/")} className="flex items-center gap-2 shrink-0">
+            <span className="text-2xl">🏠</span>
             <div className="text-left">
               <p className="font-bold text-gray-900 leading-none">
                 <span className="text-yellow-500">Lucy</span>
@@ -151,7 +150,7 @@ export function Navigation() {
       <div className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="px-4 py-2.5 flex items-center justify-between">
           <button onClick={() => setLocation("/")} className="flex items-center gap-2">
-            <img src={logoPath} alt="Lucy" className="w-10 h-10 object-contain" />
+            <span className="text-2xl">🏠</span>
             <div className="text-left">
               <p className="font-bold text-sm leading-none">
                 <span className="text-yellow-500">Lucy</span>
